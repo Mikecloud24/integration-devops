@@ -64,18 +64,8 @@ az keyvault secret set \
 
 # Project Tree
 
-integration-devops/
-├── bicep/
-│   ├── main.bicep
-│   ├── modules/
-│   │   ├── functionapp.bicep
-│   │   └── logicapp.bicep
-├── logicapps/
-│   └── order-sync.json
-└── functionapp/
-    ├── HttpTrigger1/
-    │   ├── index.js
-    │   └── package.json
+<img width="355" height="324" alt="image" src="https://github.com/user-attachments/assets/65d6f41c-0a95-491c-bb5d-4a573aa4e493" />
+
 
 
 
@@ -114,13 +104,6 @@ az deployment group create \
 
 # Unit Test (PowerShell Pester)
 tests/test_functionapp.ps1, this test should be 200 which means status code OK
-
-Describe "Function App API Health" {
-    It "Function should respond with 200" {
-        $response = Invoke-WebRequest -Uri "http://localhost:7071/api/HttpTrigger1" -UseBasicParsing
-        $response.StatusCode | Should -Be 200
-    }
-}
 
 
 # Deploy Integration Stack (Logic App + Function App)
