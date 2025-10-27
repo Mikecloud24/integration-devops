@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Bicep
+        uses: azure/setup-bicep@v1
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Build Bicep
+        run: bicep build ./bicep/main.bicep
+      - name: Install Function dependencies
+        working-directory: ./functionapp/HttpTrigger1
+        run: npm install
+      - name: Run tests
+        working-directory: ./functionapp/HttpTrigger1
+        run: npm test
+      - name: Azure Login and What-If (optional)
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: What-If deployment (optional)
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        run: |
+          az deployment group what-if --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --template-file ./bicep/main.bicep --parameters environment=dev
