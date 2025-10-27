@@ -1,0 +1,91 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2019-05-01/workflowdefinition.json",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "storage_account_connection": {
+      "type": "Object"
+    },
+    "d365_api_endpoint": {
+      "type": "String"
+    },
+    "table_storage_connection": {
+      "type": "Object"
+    }
+  },
+  "triggers": {
+    "When_a_blob_is_added_or_modified": {
+      "type": "ApiConnection",
+      "inputs": {
+        "host": {
+          "connection": {
+            "name": "@parameters('storage_account_connection')"
+          }
+        },
+        "method": "get",
+        "path": "/datasets/default/triggers/onupdatedfile",
+        "queries": {
+          "folderId": "/orders"
+        }
+      },
+      "recurrence": {
+        "frequency": "Minute",
+        "interval": 5
+      }
+    }
+  },
+  "actions": {
+    "Get_blob_content": {
+      "runAfter": {},
+      "type": "ApiConnection",
+      "inputs": {
+        "host": {
+          "connection": {
+            "name": "@parameters('storage_account_connection')"
+          }
+        },
+        "method": "get",
+        "path": "/datasets/default/files/@{triggerOutputs()?['headers']['x-ms-file-id']}/content"
+      }
+    },
+    "Post_to_D365Finance": {
+      "runAfter": {
+        "Get_blob_content": [
+          "Succeeded"
+        ]
+      },
+      "type": "Http",
+      "inputs": {
+        "method": "POST",
+        "uri": "@parameters('d365_api_endpoint')",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": "@body('Get_blob_content')"
+      }
+    },
+    "Insert_into_Table_Storage": {
+      "runAfter": {
+        "Post_to_D365Finance": [
+          "Succeeded"
+        ]
+      },
+      "type": "ApiConnection",
+      "inputs": {
+        "host": {
+          "connection": {
+            "name": "@parameters('table_storage_connection')"
+          }
+        },
+        "method": "post",
+        "path": "/tables/logs/entities",
+        "body": {
+          "PartitionKey": "OrderSync",
+          "RowKey": "@{utcNow()}",
+          "Status": "Success",
+          "Message": "@{outputs('Post_to_D365Finance').statusCode}"
+        }
+      }
+    }
+  },
+  "outputs": {}
+}
